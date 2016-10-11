@@ -1,4 +1,4 @@
-//#include <>
+#include <GY80.h>
 #include <Herkulex.h>
 #include <Adafruit_MLX90614.h>
 
@@ -20,6 +20,7 @@ const int turn_t  = 1100;
 Adafruit_MLX90614 fmlx = Adafruit_MLX90614();
 Adafruit_MLX90614 rmlx = Adafruit_MLX90614();
 Adafruit_MLX90614 lmlx = Adafruit_MLX90614();
+GY80 gy80 = GY80();
 
 const int LF_HKL    = 0xfd;
 const int RF_HKL    = 10;
@@ -69,6 +70,11 @@ bool wallr()
 bool walll()
 {
     return (analogRead(LF_SHARP) + analogRead(LB_SHARP))/2 > dst_thr;
+}
+
+bool isramp()
+{
+    GY80_single_scaled accel = a_read_scaled();
 }
 
 // Movement functions
@@ -391,11 +397,12 @@ void setup()
 
     Serial.println("Starting setup...");
 
-    Serial.println("Initializing MLX...");
+    Serial.println("Initializing MLX and GY80...");
 
     fmlx.begin();
     rmlx.begin();
     lmlx.begin();
+    gy80.begin();
 
     Serial.println("Initializing  motors...");
 

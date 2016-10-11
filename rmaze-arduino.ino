@@ -1,4 +1,4 @@
-//#include <>
+//#include <GY80.h>
 #include <Herkulex.h>
 #include <Adafruit_MLX90614.h>
 
@@ -20,6 +20,7 @@ const int turn_t  = 1100;
 Adafruit_MLX90614 fmlx = Adafruit_MLX90614();
 Adafruit_MLX90614 rmlx = Adafruit_MLX90614();
 Adafruit_MLX90614 lmlx = Adafruit_MLX90614();
+//GY80 gy80 = GY80();
 
 const int LF_HKL    = 0xfd;
 const int RF_HKL    = 10;
@@ -70,7 +71,16 @@ bool walll()
 {
     return (analogRead(LF_SHARP) + analogRead(LB_SHARP))/2 > dst_thr;
 }
-
+/*
+bool isramp()
+{
+    GY80_single_scaled accel = a_read_scaled();
+    float mod = sqrt(accel.a_x*accel.a_x + accel.a_y*accel.a_y + accel.a_z*accel.a_z);
+    float dot = -accel.a_z;
+    dot /= mod;
+    
+}
+*/
 // Movement functions
 
 void drop(int side)
@@ -118,10 +128,63 @@ void drop(int side)
     }
 }
 
-void align()
-{
+//aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 
+
+void align(){
+  //alinhar angularmente
+  unsigned long tout = 2000;
+  if(wallf() || wallr() || walll()){
+      unsigned long t0 = millis();
+      if(wallf()){//alinhar pela frente
+          const int Kpf = 5;
+          while(millis() - t0 < tout){
+              int error = analogRead(FR_SHARP) - analogRead(FL_SHARP);
+              error *= Kpf;
+              constrain(error, -1000, 1000);
+              Herkulex.moveSpeedOne(RF_HKL, -error, 1, HKL_LED);
+              Herkulex.moveSpeedOne(RB_HKL, -error, 1, HKL_LED);
+              Herkulex.moveSpeedOne(LF_HKL, -error, 1, HKL_LED);
+              Herkulex.moveSpeedOne(LB_HKL, -error, 1, HKL_LED);
+          }
+      }
+    
+      else if(walll()){//alinhar pela esquerda
+          const int Kpl= 10;
+          while(millis() - t0 < tout){
+              int error = analogRead(LF_SHARP) - analogRead(LB_SHARP);
+              error *= Kpl;
+              constrain(error, -1000, 1000);
+              Herkulex.moveSpeedOne(RF_HKL, -error, 1, HKL_LED);
+              Herkulex.moveSpeedOne(RB_HKL, -error, 1, HKL_LED);
+              Herkulex.moveSpeedOne(LF_HKL, -error, 1, HKL_LED);
+              Herkulex.moveSpeedOne(LB_HKL, -error, 1, HKL_LED);
+          }
+      }
+      
+      else{//alinhar pela direita
+          const int Kpd = 10;
+          while(millis() - t0 < tout){
+              int error = analogRead(RF_SHARP) - analogRead(RB_SHARP);
+              error *= Kpd;
+              constrain(error, -1000, 1000);
+              Herkulex.moveSpeedOne(RF_HKL,  error, 1, HKL_LED);
+              Herkulex.moveSpeedOne(RB_HKL,  error, 1, HKL_LED);
+              Herkulex.moveSpeedOne(LF_HKL,  error, 1, HKL_LED);
+              Herkulex.moveSpeedOne(LB_HKL,  error, 1, HKL_LED);
+          }
+      }
+
+      Herkulex.moveSpeedOne(RF_HKL,  1, 1, HKL_LED);
+      Herkulex.moveSpeedOne(RB_HKL,  1, 1, HKL_LED);
+      Herkulex.moveSpeedOne(LF_HKL,  1, 1, HKL_LED);
+      Herkulex.moveSpeedOne(LB_HKL,  1, 1, HKL_LED);
+    //alinhar linearmente
+
+  }
 }
+
+//aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 
 int walkf(int cnt)
 {
@@ -201,11 +264,12 @@ void setup()
 
     Serial.println("Starting setup...");
 
-    Serial.println("Initializing MLX...");
+    Serial.println("Initializing MLX and GY80...");
 
     fmlx.begin();
     rmlx.begin();
     lmlx.begin();
+    //gy80.begin();
 
     Serial.println("Initializing  motors...");
 
@@ -219,8 +283,12 @@ void setup()
     delay(2000);
 }
 
+int cnt = 0;
+int knt = 0;
 void loop()
 {
+    cnt ++;
+    knt ++;
     if(isblack())
     {
         walkb(1);
@@ -249,4 +317,5 @@ void loop()
         else
             turnr(2);
     }
+    if(!(cnt %= 3) && knt > 12 && !isblack()) drop(3);
 }
