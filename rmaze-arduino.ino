@@ -27,12 +27,16 @@ const int LB_HKL    = 0xFD;
 const int DR_HKL    = 50;
 const int BROAD_HKL = 0xfe;
 
-const int FR_SHARP  = 0;
-const int FL_SHARP  = 0;
-const int RF_SHARP  = 0;
-const int RB_SHARP  = 0;
-const int LF_SHARP  = 0;
-const int LB_SHARP  = 0;
+const int FR_SHARP  = 10;
+const int FL_SHARP  = 12;
+const int RF_SHARP  = 14;
+const int RB_SHARP  = 13;
+const int LF_SHARP  = 9;
+const int LB_SHARP  = 11;
+
+const int QTR_AIN   = 15;
+
+const int ledpin    = 22;
 
 const int HKL_LED   = 0x06;
 
@@ -44,6 +48,11 @@ int check_victim()
 	if(rmlx.readObjectTempC() - rmlx.readAmbientTempC() > tmp_thr) return 1;
 	if(lmlx.readObjectTempC() - lmlx.readAmbientTempC() > tmp_thr) return 3;
 	return -1;
+}
+
+bool isblack()
+{
+    return analogRead(QTR_AIN) > col_thr;
 }
 
 bool wallf()
@@ -65,6 +74,13 @@ bool walll()
 
 void drop(int side)
 {
+    for(int i = 0; i < 6; i++)
+    {
+        digitalWrite(ledpin, HIGH);
+        delay(500);
+        digitalWrite(ledpin, LOW);
+        delay(500);
+    }
     switch(side)
     {
     case 0:
@@ -80,9 +96,9 @@ void drop(int side)
         break;
     }
 
-    moveOneAngle(DR_HKL, 0, 1, 0x06);
+    Herkulex.moveOneAngle(DR_HKL, 0, 1, 0x06);
     delay(1000);
-    moveOneAngle(DR_HKL, -95, 1, 0x06);
+    Herkulex.moveOneAngle(DR_HKL, -95, 1, 0x06);
     delay(1000);
 
     switch(side)

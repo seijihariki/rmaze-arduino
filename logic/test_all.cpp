@@ -183,6 +183,8 @@ void setup()
     Herkulex.torqueON(BROAD_HKL);
 
     Serial.println("Setup ended.");
+
+    Serial.println("Started testing...");
 }
 
 void loop()
