@@ -4,15 +4,16 @@
 
 // Calib
 
-const int dst_thr = 270;
+const int dst_thr = 200;
 const int col_thr = 850;
 const int tmp_thr = 6;
 
 const int walkpot = 1000;
-const int walk_t  = 1600;
+const int calib   = 60;
+const int walk_t  = 1800;
 
 const int turnpot = 1000;
-const int turn_t  = 1000;
+const int turn_t  = 1100;
 
 // Fixed
 
@@ -20,10 +21,10 @@ Adafruit_MLX90614 fmlx = Adafruit_MLX90614();
 Adafruit_MLX90614 rmlx = Adafruit_MLX90614();
 Adafruit_MLX90614 lmlx = Adafruit_MLX90614();
 
-const int LF_HKL    = 16;
+const int LF_HKL    = 0xfd;
 const int RF_HKL    = 10;
-const int RB_HKL    = 20;
-const int LB_HKL    = 0xFD;
+const int RB_HKL    = 38;
+const int LB_HKL    = 20;
 const int DR_HKL    = 50;
 const int BROAD_HKL = 0xfe;
 
@@ -131,8 +132,8 @@ int walkf(int cnt)
         unsigned long tile_init = millis();
         Herkulex.moveSpeedOne(RF_HKL, -walkpot, 1, HKL_LED);
         Herkulex.moveSpeedOne(RB_HKL, -walkpot, 1, HKL_LED);
-        Herkulex.moveSpeedOne(LF_HKL,  walkpot, 1, HKL_LED);
-        Herkulex.moveSpeedOne(LB_HKL,  walkpot, 1, HKL_LED);
+        Herkulex.moveSpeedOne(LF_HKL,  walkpot - calib, 1, HKL_LED);
+        Herkulex.moveSpeedOne(LB_HKL,  walkpot - calib, 1, HKL_LED);
         while(millis() - tile_init < walk_t)
         {
             if(victim < 0) victim = check_victim();
@@ -144,6 +145,22 @@ int walkf(int cnt)
     if (victim >= 0) drop(victim);
 }
 
+int walkb(int cnt)
+{
+    int i;
+    for(i = 0; i < cnt; i++)
+    {
+        unsigned long tile_init = millis();
+        Herkulex.moveSpeedOne(RF_HKL,  walkpot, 1, HKL_LED);
+        Herkulex.moveSpeedOne(RB_HKL,  walkpot, 1, HKL_LED);
+        Herkulex.moveSpeedOne(LF_HKL, -walkpot + calib, 1, HKL_LED);
+        Herkulex.moveSpeedOne(LB_HKL, -walkpot + calib, 1, HKL_LED);
+        while(millis() - tile_init < walk_t);
+    }
+
+    Herkulex.moveSpeedOne(BROAD_HKL, 1, 1, HKL_LED);
+}
+
 int turnr(int cnt)
 {
     int victim = -1;
@@ -152,8 +169,8 @@ int turnr(int cnt)
     {
 		Herkulex.moveSpeedOne(RF_HKL, walkpot, 1, HKL_LED);
 		Herkulex.moveSpeedOne(RB_HKL, walkpot, 1, HKL_LED);
-		Herkulex.moveSpeedOne(LF_HKL, walkpot, 1, HKL_LED);
-		Herkulex.moveSpeedOne(LB_HKL, walkpot, 1, HKL_LED);
+		Herkulex.moveSpeedOne(LF_HKL, walkpot - calib , 1, HKL_LED);
+		Herkulex.moveSpeedOne(LB_HKL, walkpot - calib, 1, HKL_LED);
         unsigned long tile_init = millis();
         while(millis() - tile_init < turn_t);
     }
@@ -168,8 +185,8 @@ int turnl(int cnt)
     {
 		Herkulex.moveSpeedOne(RF_HKL, -walkpot, 1, HKL_LED);
 		Herkulex.moveSpeedOne(RB_HKL, -walkpot, 1, HKL_LED);
-		Herkulex.moveSpeedOne(LF_HKL, -walkpot, 1, HKL_LED);
-		Herkulex.moveSpeedOne(LB_HKL, -walkpot, 1, HKL_LED);
+		Herkulex.moveSpeedOne(LF_HKL, -walkpot + calib, 1, HKL_LED);
+		Herkulex.moveSpeedOne(LB_HKL, -walkpot + calib, 1, HKL_LED);
  
         unsigned long tile_init = millis();
         while(millis() - tile_init < turn_t);
@@ -199,8 +216,37 @@ void setup()
     Herkulex.torqueON(BROAD_HKL);
 
     Serial.println("Setup ended.");
+    delay(2000);
 }
 
 void loop()
 {
+    if(isblack())
+    {
+        walkb(1);
+        if(wallr())
+            turnr(2);
+        else
+        {
+            turnr(1);
+            walkf(1);
+        }
+    }
+    else
+    {
+        if(!walll())
+        {
+            turnl(1);
+            walkf(1);
+        }
+        else if (!wallf())
+            walkf(1);
+        else if (!wallr())
+        {
+            turnr(1);
+            walkf(1);
+        }
+        else
+            turnr(2);
+    }
 }
