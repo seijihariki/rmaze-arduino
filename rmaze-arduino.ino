@@ -15,6 +15,7 @@ const int walk_t  = 1800;
 const int turnpot = 1000;
 const int turn_t  = 1100;
 
+const int walldist = 500;
 // Fixed
 
 Adafruit_MLX90614 fmlx = Adafruit_MLX90614();
@@ -132,56 +133,85 @@ void drop(int side)
 
 
 void align(){
-  //alinhar angularmente
-  unsigned long tout = 2000;
-  if(wallf() || wallr() || walll()){
-      unsigned long t0 = millis();
-      if(wallf()){//alinhar pela frente
-          const int Kpf = 5;
-          while(millis() - t0 < tout){
-              int error = analogRead(FR_SHARP) - analogRead(FL_SHARP);
-              error *= Kpf;
-              constrain(error, -1000, 1000);
-              Herkulex.moveSpeedOne(RF_HKL, -error, 1, HKL_LED);
-              Herkulex.moveSpeedOne(RB_HKL, -error, 1, HKL_LED);
-              Herkulex.moveSpeedOne(LF_HKL, -error, 1, HKL_LED);
-              Herkulex.moveSpeedOne(LB_HKL, -error, 1, HKL_LED);
-          }
-      }
+    //alinhar angularmente
+    unsigned long tout = 1000;
+    if(wallf() || wallr() || walll()){
+        unsigned long t0 = millis();
+        if(wallf()){//alinhar pela frente
+            Serial.println("Aligning front");
+            const int Kpf = 5;
+            while(millis() - t0 < tout){
+                int error = analogRead(FR_SHARP) - analogRead(FL_SHARP);
+                error *= Kpf;
+                error = constrain(error, -1000, 1000);
+                if(abs(error) < 100) break;
+                Herkulex.moveSpeedOne(RF_HKL, error, 1, HKL_LED);
+                Herkulex.moveSpeedOne(RB_HKL, error, 1, HKL_LED);
+                Herkulex.moveSpeedOne(LF_HKL, error, 1, HKL_LED);
+                Herkulex.moveSpeedOne(LB_HKL, error, 1, HKL_LED);
+            }
+        }
     
-      else if(walll()){//alinhar pela esquerda
-          const int Kpl= 10;
-          while(millis() - t0 < tout){
-              int error = analogRead(LF_SHARP) - analogRead(LB_SHARP);
-              error *= Kpl;
-              constrain(error, -1000, 1000);
-              Herkulex.moveSpeedOne(RF_HKL, -error, 1, HKL_LED);
-              Herkulex.moveSpeedOne(RB_HKL, -error, 1, HKL_LED);
-              Herkulex.moveSpeedOne(LF_HKL, -error, 1, HKL_LED);
-              Herkulex.moveSpeedOne(LB_HKL, -error, 1, HKL_LED);
-          }
-      }
+        else if(walll()){//alinhar pela esquerda
+            Serial.println("Aligning left");
+            const int Kpl= 5;
+            while(millis() - t0 < tout){
+                int error = analogRead(LF_SHARP) - analogRead(LB_SHARP);
+                error *= Kpl;
+                error = constrain(abs(error), -1000, 1000);
+                if(abs(error) < 100) break;
+                Herkulex.moveSpeedOne(RF_HKL, error, 1, HKL_LED);
+                Herkulex.moveSpeedOne(RB_HKL, error, 1, HKL_LED);
+                Herkulex.moveSpeedOne(LF_HKL, error, 1, HKL_LED);
+                Herkulex.moveSpeedOne(LB_HKL, error, 1, HKL_LED);
+            }
+        }
       
-      else{//alinhar pela direita
-          const int Kpd = 10;
-          while(millis() - t0 < tout){
-              int error = analogRead(RF_SHARP) - analogRead(RB_SHARP);
-              error *= Kpd;
-              constrain(error, -1000, 1000);
-              Herkulex.moveSpeedOne(RF_HKL,  error, 1, HKL_LED);
-              Herkulex.moveSpeedOne(RB_HKL,  error, 1, HKL_LED);
-              Herkulex.moveSpeedOne(LF_HKL,  error, 1, HKL_LED);
-              Herkulex.moveSpeedOne(LB_HKL,  error, 1, HKL_LED);
-          }
-      }
+        else{//alinhar pela direita
+            Serial.println("Aligning right");
+            const int Kpd = 5;
+            while(millis() - t0 < tout){
+                int error = analogRead(RF_SHARP) - analogRead(RB_SHARP);
+                error *= Kpd;
+                error = constrain(error, -1000, 1000);
+                if(abs(error) < 100) break;
+                Herkulex.moveSpeedOne(RF_HKL,  -error, 1, HKL_LED);
+                Herkulex.moveSpeedOne(RB_HKL,  -error, 1, HKL_LED);
+                Herkulex.moveSpeedOne(LF_HKL,  -error, 1, HKL_LED);
+                Herkulex.moveSpeedOne(LB_HKL,  -error, 1, HKL_LED);
+            }
+        }
 
-      Herkulex.moveSpeedOne(RF_HKL,  1, 1, HKL_LED);
-      Herkulex.moveSpeedOne(RB_HKL,  1, 1, HKL_LED);
-      Herkulex.moveSpeedOne(LF_HKL,  1, 1, HKL_LED);
-      Herkulex.moveSpeedOne(LB_HKL,  1, 1, HKL_LED);
-    //alinhar linearmente
+        Herkulex.moveSpeedOne(RF_HKL,  1, 1, HKL_LED);
+        Herkulex.moveSpeedOne(RB_HKL,  1, 1, HKL_LED);
+        Herkulex.moveSpeedOne(LF_HKL,  1, 1, HKL_LED);
+        Herkulex.moveSpeedOne(LB_HKL,  1, 1, HKL_LED);
+      
+        //alinhar linearmente
+        int Kpl = 10;
+        int Kpf = 10;
 
-  }
+        if (!walll())Kpl = 0;
+        if (!wallf())Kpf = 0;
+        t0 = millis();
+        while(millis()-t0 < tout){
+            int errorl = ((analogRead(LF_SHARP) + analogRead(LB_SHARP))/2) - walldist;
+            int errorf = ((analogRead(FL_SHARP) + analogRead(FR_SHARP))/2) - walldist;
+
+            errorf *= Kpf;
+            errorl *= Kpl;
+            if(abs(errorl) < 100 && abs(errorf) < 100) break;
+            Herkulex.moveSpeedOne(RF_HKL,  constrain((errorf) + (errorl), -1000, 1000), 1, HKL_LED);
+            Herkulex.moveSpeedOne(RB_HKL,  constrain((errorf) - (errorl), -1000, 1000), 1, HKL_LED);
+            Herkulex.moveSpeedOne(LF_HKL,  constrain(-(errorf) + (errorl), -1000, 1000), 1, HKL_LED);
+            Herkulex.moveSpeedOne(LB_HKL,  constrain(-(errorf) - (errorl), -1000, 1000), 1, HKL_LED);
+        } 
+
+        Herkulex.moveSpeedOne(RF_HKL,  1, 1, HKL_LED);
+        Herkulex.moveSpeedOne(RB_HKL,  1, 1, HKL_LED);
+        Herkulex.moveSpeedOne(LF_HKL,  1, 1, HKL_LED);
+        Herkulex.moveSpeedOne(LB_HKL,  1, 1, HKL_LED);
+    }
 }
 
 //aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
@@ -281,6 +311,10 @@ void setup()
 
     Serial.println("Setup ended.");
     delay(2000);
+    while(1)
+    {
+        Serial.println(analogRead(QTR_AIN));
+    }
 }
 
 int cnt = 0;
@@ -302,6 +336,7 @@ void loop()
     }
     else
     {
+        align();
         if(!walll())
         {
             turnl(1);
@@ -317,5 +352,6 @@ void loop()
         else
             turnr(2);
     }
-    if(!(cnt %= 3) && knt > 12 && !isblack()) drop(3);
+    if(!walll()) cnt--;
+    if(!(cnt %= 3) && knt > 12 && !isblack()) drop(1);
 }
