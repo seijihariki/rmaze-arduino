@@ -1,3 +1,5 @@
+#include <L3G4200D.h>
+
 #include <ADXL345.h>
 
 #include <Herkulex.h>
@@ -16,14 +18,17 @@ const int walk_t  = 1600;
 
 const int turnpot = 1000;
 const int turn_t  = 1000;
+const double turn_gc = 80;
 
-const int walldist = 500;
+const int walldist = 430;
+const int fwalldist = 360;
 // Fixed
 
 //Adafruit_MLX90614 fmlx = Adafruit_MLX90614();
 Adafruit_MLX90614 rmlx = Adafruit_MLX90614(0x5a);
 Adafruit_MLX90614 lmlx = Adafruit_MLX90614(0x59);
 ADXL345 gy80 = ADXL345();
+L3G4200D gyro = L3G4200D();
 
 const int LF_HKL    = 0xfd;
 const int RF_HKL    = 10;
@@ -38,6 +43,10 @@ const int RF_SHARP  = 14;
 const int RB_SHARP  = 13;
 const int LF_SHARP  = 9;
 const int LB_SHARP  = 11;
+
+const int F_DSHARP  = 30;
+const int R_DSHARP  = 50;
+const int L_DSHARP  = 32;
 
 const int QTR_AIN   = 15;
 
@@ -62,17 +71,17 @@ bool isblack()
 
 bool wallf()
 {
-    return (analogRead(FR_SHARP) + analogRead(FL_SHARP))/2 > dst_thr;
+    return ((analogRead(FR_SHARP) + analogRead(FL_SHARP))/2 > dst_thr) || !digitalRead(F_DSHARP);
 }
 
 bool wallr()
 {
-    return (analogRead(RF_SHARP) + analogRead(RB_SHARP))/2 > dst_thr;
+    return ((analogRead(RF_SHARP) + analogRead(RB_SHARP))/2 > dst_thr) || !digitalRead(R_DSHARP);
 }
 
 bool walll()
 {
-    return (analogRead(LF_SHARP) + analogRead(LB_SHARP))/2 > dst_thr;
+    return ((analogRead(LF_SHARP) + analogRead(LB_SHARP))/2 > dst_thr) || !digitalRead(L_DSHARP);
 }
 
 bool isramp()
@@ -165,7 +174,7 @@ void align(){
 
         while(millis() - t0 < tout){
             int errorl = 0;
-            int errorf = ((analogRead(FL_SHARP) + analogRead(FR_SHARP))/2) - walldist;
+            int errorf = ((analogRead(FL_SHARP) + analogRead(FR_SHARP))/2) - fwalldist;
             int cntr = 0;
             int cntl = 0;
             int errorr = 0;
@@ -199,6 +208,8 @@ void align(){
             errorl *= Kpl;
 
             if(abs(errorl) < 50 && abs(errorf) < 50 && abs(errorr) < 50) break;
+
+            //if(!digitalRead(F_DSHARP)) errorf *= -.5;
 
             Herkulex.moveSpeedOne(RF_HKL, constrain((errorf) + (errorl) + errorr, -1000, 1000), 1, HKL_LED);
             Herkulex.moveSpeedOne(RB_HKL, constrain((errorf) - (errorl) + errorr, -1000, 1000), 1, HKL_LED);
@@ -245,8 +256,40 @@ int walkb(int cnt)
     Herkulex.moveSpeedOne(BROAD_HKL, 1, 1, HKL_LED);
 }
 
+int turnr_gyro(int cnt)
+{
+    double sum = 0;
+    Herkulex.moveSpeedOne(RF_HKL, walkpot, 1, HKL_LED);
+    Herkulex.moveSpeedOne(RB_HKL, walkpot, 1, HKL_LED);
+    Herkulex.moveSpeedOne(LF_HKL, walkpot - calib , 1, HKL_LED);
+    Herkulex.moveSpeedOne(LB_HKL, walkpot - calib, 1, HKL_LED);
+    while(sum < turn_gc*cnt)
+    {
+        sum += gyro.readNormalize().ZAxis*.01;
+        delay(10);
+    }
+    Herkulex.moveSpeedOne(BROAD_HKL, 1, 1, HKL_LED);
+}
+
+int turnl_gyro(int cnt)
+{
+    double sum = 0;
+    Herkulex.moveSpeedOne(RF_HKL, -walkpot, 1, HKL_LED);
+    Herkulex.moveSpeedOne(RB_HKL, -walkpot, 1, HKL_LED);
+    Herkulex.moveSpeedOne(LF_HKL, -walkpot + calib, 1, HKL_LED);
+    Herkulex.moveSpeedOne(LB_HKL, -walkpot + calib, 1, HKL_LED);
+    while(sum < turn_gc*cnt)
+    {
+        sum -= gyro.readNormalize().ZAxis*.01;
+        delay(10);
+    }
+    Herkulex.moveSpeedOne(BROAD_HKL, 1, 1, HKL_LED);
+}
+
 int turnr(int cnt)
 {
+    turnr_gyro(cnt);
+    return cnt;
     int victim = -1;
     int i;
     for(i = 0; i < cnt; i++)
@@ -263,6 +306,8 @@ int turnr(int cnt)
 
 int turnl(int cnt)
 {
+    turnl_gyro(cnt);
+    return cnt;
     int victim = -1;
     int i;
     for(i = 0; i < cnt; i++)
@@ -285,12 +330,16 @@ void setup()
 
     Serial.println("Starting setup...");
 
-    Serial.println("Initializing MLX and GY80...");
+    Serial.println("Initializing MLX and GY80. Do not disturb IMU!");
 
     //fmlx.begin();
     rmlx.begin();
     lmlx.begin();
     gy80.begin();
+    gyro.begin();
+    gyro.calibrate();
+    Serial.print("Gyroscope callibrated to ");
+    Serial.println(gyro.getThreshold());
 
     Serial.println("Initializing  motors...");
 
@@ -302,6 +351,7 @@ void setup()
 
     Serial.println("Setup ended.");
     delay(2000);
+    Serial.println("Starting program");
 }
 
 void loop()
