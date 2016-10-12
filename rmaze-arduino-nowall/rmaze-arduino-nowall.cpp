@@ -7,7 +7,7 @@
 
 const int dst_thr = 200;
 const int col_thr = 900;
-const int tmp_thr = 5;
+const int tmp_thr = 6;
 const double ramp_thr = 17;
 
 const int walkpot = 1000;
@@ -99,7 +99,17 @@ void upramp()
     {
         delay(500);
     }
-    delay(1500);
+    Herkulex.moveSpeedOne(BROAD_HKL, 1, 1, HKL_LED);
+}
+
+void downramp()
+{
+    Herkulex.moveSpeedOne(RF_HKL, -1000, 1, HKL_LED);
+    Herkulex.moveSpeedOne(RB_HKL, -1000, 1, HKL_LED);
+    Herkulex.moveSpeedOne(LF_HKL,  1000, 1, HKL_LED);
+    Herkulex.moveSpeedOne(LB_HKL,  1000, 1, HKL_LED);
+    while(isramp())
+        delay(5);
     Herkulex.moveSpeedOne(BROAD_HKL, 1, 1, HKL_LED);
 }
 
@@ -152,58 +162,78 @@ void drop(int side)
 
 
 void align(){
-    unsigned long tout = 3500;
-
+    //alinhar angularmente
+    unsigned long tout = 5000;
     if(wallf() || wallr() || walll()){
         unsigned long t0 = millis();
-        int Kpr = 5;
-        int Kpl = 5;
-        int Kpf = 5;
+        if(wallf()){//alinhar pela frente
+            Serial.println("Aligning front");
+            const int Kpf = 5;
+            while(millis() - t0 < tout){
+                int error = analogRead(FR_SHARP) - analogRead(FL_SHARP);
+                error *= Kpf;
+                error = constrain(error, -1000, 1000);
+                if(abs(error) < 50) break;
+                Herkulex.moveSpeedOne(RF_HKL, error, 1, HKL_LED);
+                Herkulex.moveSpeedOne(RB_HKL, error, 1, HKL_LED);
+                Herkulex.moveSpeedOne(LF_HKL, error, 1, HKL_LED);
+                Herkulex.moveSpeedOne(LB_HKL, error, 1, HKL_LED);
+            }
+        }
+    
+        else if(walll()){//alinhar pela esquerda
+            Serial.println("Aligning left");
+            const int Kpl= 5;
+            while(millis() - t0 < tout){
+                int error = analogRead(LF_SHARP) - analogRead(LB_SHARP);
+                error *= Kpl;
+                error = constrain(abs(error), -1000, 1000);
+                if(abs(error) < 50) break;
+                Herkulex.moveSpeedOne(RF_HKL, error, 1, HKL_LED);
+                Herkulex.moveSpeedOne(RB_HKL, error, 1, HKL_LED);
+                Herkulex.moveSpeedOne(LF_HKL, error, 1, HKL_LED);
+                Herkulex.moveSpeedOne(LB_HKL, error, 1, HKL_LED);
+            }
+        }
+      
+        else{//alinhar pela direita
+            Serial.println("Aligning right");
+            const int Kpd = 5;
+            while(millis() - t0 < tout){
+                int error = analogRead(RF_SHARP) - analogRead(RB_SHARP);
+                error *= Kpd;
+                error = constrain(error, -1000, 1000);
+                if(abs(error) < 50) break;
+                Herkulex.moveSpeedOne(RF_HKL,  -error, 1, HKL_LED);
+                Herkulex.moveSpeedOne(RB_HKL,  -error, 1, HKL_LED);
+                Herkulex.moveSpeedOne(LF_HKL,  -error, 1, HKL_LED);
+                Herkulex.moveSpeedOne(LB_HKL,  -error, 1, HKL_LED);
+            }
+        }
+
+        Herkulex.moveSpeedOne(RF_HKL,  1, 1, HKL_LED);
+        Herkulex.moveSpeedOne(RB_HKL,  1, 1, HKL_LED);
+        Herkulex.moveSpeedOne(LF_HKL,  1, 1, HKL_LED);
+        Herkulex.moveSpeedOne(LB_HKL,  1, 1, HKL_LED);
+      
+        //alinhar linearmente
+        int Kpl = 10;
+        int Kpf = 10;
 
         if (!walll())Kpl = 0;
         if (!wallf())Kpf = 0;
-
-        while(millis() - t0 < tout){
-            int errorl = 0;
+        t0 = millis();
+        while(millis()-t0 < tout){
+            int errorl = ((analogRead(LF_SHARP) + analogRead(LB_SHARP))/2) - walldist;
             int errorf = ((analogRead(FL_SHARP) + analogRead(FR_SHARP))/2) - walldist;
-            int cntr = 0;
-            int cntl = 0;
-            int errorr = 0;
-            
-            if(wallf())
-            {
-                errorr += analogRead(FR_SHARP) - analogRead(FL_SHARP);
-                cntr++;
-            } else errorf = 0;
 
-            if(walll())
-            {
-                errorr += analogRead(LF_SHARP) - analogRead(LB_SHARP);
-                cntr++;
-                errorl += ((analogRead(LF_SHARP) + analogRead(LB_SHARP))/2) - walldist; 
-                cntl++;
-            }
-
-            if(wallr())
-            {
-                errorr += analogRead(RB_SHARP) - analogRead(RF_SHARP);
-                cntr++;
-                errorl += walldist - ((analogRead(RF_SHARP) + analogRead(RB_SHARP))/2);
-                cntl++;
-            }
-
-            if (cntr) errorr /= cntr;
-            errorr *= Kpr;
             errorf *= Kpf;
-            if (cntl) errorl /= cntl;
             errorl *= Kpl;
-
-            if(abs(errorl) < 50 && abs(errorf) < 50 && abs(errorr) < 50) break;
-
-            Herkulex.moveSpeedOne(RF_HKL, constrain((errorf) + (errorl) + errorr, -1000, 1000), 1, HKL_LED);
-            Herkulex.moveSpeedOne(RB_HKL, constrain((errorf) - (errorl) + errorr, -1000, 1000), 1, HKL_LED);
-            Herkulex.moveSpeedOne(LF_HKL, constrain(-(errorf) + (errorl) + errorr, -1000, 1000), 1, HKL_LED);
-            Herkulex.moveSpeedOne(LB_HKL, constrain(-(errorf) - (errorl) + errorr, -1000, 1000), 1, HKL_LED);
+            if(abs(errorl) < 50 && abs(errorf) < 50) break;
+            Herkulex.moveSpeedOne(RF_HKL,  constrain((errorf) + (errorl), -1000, 1000), 1, HKL_LED);
+            Herkulex.moveSpeedOne(RB_HKL,  constrain((errorf) - (errorl), -1000, 1000), 1, HKL_LED);
+            Herkulex.moveSpeedOne(LF_HKL,  constrain(-(errorf) + (errorl), -1000, 1000), 1, HKL_LED);
+            Herkulex.moveSpeedOne(LB_HKL,  constrain(-(errorf) - (errorl), -1000, 1000), 1, HKL_LED);
         } 
 
         Herkulex.moveSpeedOne(RF_HKL,  1, 1, HKL_LED);
@@ -212,6 +242,8 @@ void align(){
         Herkulex.moveSpeedOne(LB_HKL,  1, 1, HKL_LED);
     }
 }
+
+//aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 
 int walkf(int cnt)
 {
@@ -306,51 +338,4 @@ void setup()
 
 void loop()
 {
-    Serial.println(isramp());
-    if(isramp()) upramp();
-    int victim = check_victim();
-    if(victim >= 0) drop(victim);
-    if(isblack())
-    {
-        walkb(1);
-        align();
-        if(wallr())
-        {
-            turnr(2);
-        }
-        else
-        {
-            turnr(1);
-            align();
-            walkf(1);
-        }
-    }
-    else
-    {
-        align();
-        if(!walll())
-        {
-            turnl(1);
-            victim = check_victim();
-            if(victim >= 0) drop(victim);
-            align();
-            walkf(1);
-        }
-        else if (!wallf())
-        {
-            walkf(1);
-        }
-        else if (!wallr())
-        {
-            turnr(1);
-            victim = check_victim();
-            if(victim >= 0) drop(victim);
-            align();
-            walkf(1);
-        }
-        else
-        {
-            turnr(2);
-        }
-    }
 }
