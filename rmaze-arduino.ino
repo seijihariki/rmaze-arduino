@@ -14,13 +14,13 @@ const double ramp_thr = 17;
 
 const int walkpot = 1000;
 const int calib   = 60;
-const int walk_t  = 1600;
+const int walk_t  = 1700;
 
 const int turnpot = 1000;
 const int turn_t  = 1000;
 const double turn_gc = 80;
 
-const int walldist = 430;
+const int walldist = 500;
 const int fwalldist = 360;
 // Fixed
 
@@ -207,7 +207,7 @@ void align(){
             if (cntl) errorl /= cntl;
             errorl *= Kpl;
 
-            if(abs(errorl) < 50 && abs(errorf) < 50 && abs(errorr) < 50) break;
+            if(abs(errorl) < 70 && abs(errorf) < 70 && abs(errorr) < 70) break;
 
             //if(!digitalRead(F_DSHARP)) errorf *= -.5;
 
@@ -288,7 +288,9 @@ int turnl_gyro(int cnt)
 
 int turnr(int cnt)
 {
+    delay(500);
     turnr_gyro(cnt);
+    delay(500);
     return cnt;
     int victim = -1;
     int i;
@@ -306,7 +308,9 @@ int turnr(int cnt)
 
 int turnl(int cnt)
 {
+    delay(500);
     turnl_gyro(cnt);
+    delay(500);
     return cnt;
     int victim = -1;
     int i;
@@ -352,6 +356,8 @@ void setup()
     Serial.println("Setup ended.");
     delay(2000);
     Serial.println("Starting program");
+    turnr(2);
+    while(1);
 }
 
 void loop()
@@ -381,9 +387,9 @@ void loop()
         if(!walll())
         {
             turnl(1);
+            align();
             victim = check_victim();
             if(victim >= 0) drop(victim);
-            align();
             walkf(1);
         }
         else if (!wallf())
@@ -401,6 +407,8 @@ void loop()
         else
         {
             turnr(2);
+            align();
+            walkf(1);
         }
     }
 }
