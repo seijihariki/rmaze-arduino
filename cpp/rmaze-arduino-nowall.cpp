@@ -49,10 +49,10 @@ const int HKL_LED   = 0x06;
 
 int check_victim()
 {
-  //if(fmlx.readObjectTempC() - fmlx.readAmbientTempC() > tmp_thr) return 0;
-  if(rmlx.readObjectTempC() - rmlx.readAmbientTempC() > tmp_thr) return 1;
-  if(lmlx.readObjectTempC() - lmlx.readAmbientTempC() > tmp_thr) return 3;
-  return -1;
+	//if(fmlx.readObjectTempC() - fmlx.readAmbientTempC() > tmp_thr) return 0;
+	if(rmlx.readObjectTempC() - rmlx.readAmbientTempC() > tmp_thr) return 1;
+	if(lmlx.readObjectTempC() - lmlx.readAmbientTempC() > tmp_thr) return 3;
+	return -1;
 }
 
 bool isblack()
@@ -227,6 +227,7 @@ int walkf(int cnt)
     }
 
     Herkulex.moveSpeedOne(BROAD_HKL, 1, 1, HKL_LED);
+    return i;
 }
 
 int walkb(int cnt)
@@ -243,40 +244,41 @@ int walkb(int cnt)
     }
 
     Herkulex.moveSpeedOne(BROAD_HKL, 1, 1, HKL_LED);
+    return i;
 }
 
 int turnr(int cnt)
 {
-    int victim = -1;
     int i;
     for(i = 0; i < cnt; i++)
     {
-    Herkulex.moveSpeedOne(RF_HKL, walkpot, 1, HKL_LED);
-    Herkulex.moveSpeedOne(RB_HKL, walkpot, 1, HKL_LED);
-    Herkulex.moveSpeedOne(LF_HKL, walkpot - calib , 1, HKL_LED);
-    Herkulex.moveSpeedOne(LB_HKL, walkpot - calib, 1, HKL_LED);
+		Herkulex.moveSpeedOne(RF_HKL, walkpot, 1, HKL_LED);
+		Herkulex.moveSpeedOne(RB_HKL, walkpot, 1, HKL_LED);
+		Herkulex.moveSpeedOne(LF_HKL, walkpot - calib , 1, HKL_LED);
+		Herkulex.moveSpeedOne(LB_HKL, walkpot - calib, 1, HKL_LED);
         unsigned long tile_init = millis();
         while(millis() - tile_init < turn_t);
     }
     Herkulex.moveSpeedOne(BROAD_HKL, 1, 1, HKL_LED);
+    return i;
 }
 
 int turnl(int cnt)
 {
-    int victim = -1;
     int i;
     for(i = 0; i < cnt; i++)
     {
-    Herkulex.moveSpeedOne(RF_HKL, -walkpot, 1, HKL_LED);
-    Herkulex.moveSpeedOne(RB_HKL, -walkpot, 1, HKL_LED);
-    Herkulex.moveSpeedOne(LF_HKL, -walkpot + calib, 1, HKL_LED);
-    Herkulex.moveSpeedOne(LB_HKL, -walkpot + calib, 1, HKL_LED);
+		Herkulex.moveSpeedOne(RF_HKL, -walkpot, 1, HKL_LED);
+		Herkulex.moveSpeedOne(RB_HKL, -walkpot, 1, HKL_LED);
+		Herkulex.moveSpeedOne(LF_HKL, -walkpot + calib, 1, HKL_LED);
+		Herkulex.moveSpeedOne(LB_HKL, -walkpot + calib, 1, HKL_LED);
  
         unsigned long tile_init = millis();
         while(millis() - tile_init < turn_t);
     }
 
     Herkulex.moveSpeedOne(BROAD_HKL, 1, 1, HKL_LED);
+    return i;
 }
 
 void setup()
@@ -545,7 +547,7 @@ int PF(bool first)
                         done = true;
                     }
 
-                    if(iy > 0 && !Map[ix][iy - 1][2]
+                    if(iy > 0 && !floor[ix][iy - 1][2]
                             && (first || Map[ix][iy - 1][f] & VIS)
                             && !(Map[ix][iy][f] & HOR))
                     {
